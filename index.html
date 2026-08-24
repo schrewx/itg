@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Itaktak Mo Game!</title>
+<style>
+  :root {
+    --bg: #80BDAB;
+    --sidebar: #3F3F44;
+    --text: #F7F7F7;
+    --button: #FDCB9E;
+    --button-hover: #FFDDBB;
+    --cell-bg: #FFFFFF;
+    --cell-hover: #EAF5F0;
+    --grid-line: #3F3F44;
+    --x-color: #2E86AB;
+    --o-color: #C1440E;
+    --win-line: #FFD166;
+    --win-flash: #FFF3B0;
+    --pattern-bg: #F7EFDD;
+    --pattern-line: #C97B67;
+    --pattern-line-light: #E3A594;
+    --badge-dark: #15151B;
+    --badge-teal: #1E7A82;
+    --badge-orange: #E8942C;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    transition: background-color .25s ease;
+  }
+
+  #app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    transition: background-color .25s ease;
+  }
+
+  /* ---------- HOME SCREEN ---------- */
+  #home-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #home-pattern-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .home-card {
+    position: relative;
+    background: #FFFFFF;
+    border: 3px solid var(--button);
+    border-radius: 10px;
+    padding: 28px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+    max-width: 92vw;
+    max-height: 92vh;
+    overflow: auto;
+  }
+
+  #home-banner-canvas { display: block; }
+
+  .home-subtitle {
+    font-style: italic;
+    font-size: 13px;
+    color: var(--sidebar);
+    margin: 0 0 16px 0;
+  }
+
+  .home-buttons { display: flex; flex-direction: column; width: 260px; gap: 10px; }
+
+  /* ---------- BUTTONS ---------- */
+  .btn {
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 13px;
+    background: var(--button);
+    color: var(--sidebar);
+    border: none;
+    border-radius: 4px;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: background-color .15s ease;
+  }
+  .btn:hover { background: var(--button-hover); }
+  .btn:active { transform: translateY(1px); }
+
+  /* ---------- MENU BAR ---------- */
+  #menubar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 30px;
+    background: var(--sidebar);
+    display: flex;
+    align-items: center;
+    z-index: 50;
+    font-size: 13px;
+    user-select: none;
+  }
+  #menubar.hidden { display: none; }
+  .menu-item {
+    position: relative;
+    color: var(--text);
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.12); }
+  .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%; left: 0;
+    background: #2c2c30;
+    min-width: 190px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    z-index: 60;
+    border-radius: 0 0 4px 4px;
+    overflow: hidden;
+  }
+  .menu-label { padding: 6px 0; display: inline-block; }
+  .dropdown.open { display: block; }
+  .dropdown a, .dropdown .sub-toggle {
+    display: block;
+    padding: 8px 14px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .dropdown a:hover, .dropdown .sub-toggle:hover { background: rgba(255,255,255,0.1); }
+  .dropdown hr { border: none; border-top: 1px solid #4a4a50; margin: 4px 0; }
+  .submenu-wrap { position: relative; }
+  .submenu {
+    display: none;
+    position: absolute;
+    left: 100%; top: 0;
+    background: #2c2c30;
+    min-width: 130px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .submenu.open { display: block; }
+  .check-row { display: flex; align-items: center; gap: 8px; }
+
+  /* ---------- GAME SCREEN ---------- */
+  #game-screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    padding-top: 44px;
+  }
+  #game-banner { width: 100%; height: 10px; border-radius: 4px; margin-bottom: 16px; }
+
+  .names-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0 20px;
+    margin-bottom: 6px;
+  }
+  .player-block { text-align: center; min-width: 90px; }
+  .player-name { font-weight: bold; font-size: 13px; }
+  .crowns { font-size: 16px; line-height: 1.3; margin-top: 2px; white-space: pre-line; }
+  #set-label { font-weight: bold; font-size: 13px; color: var(--text); text-align: center; flex: 1; }
+
+  .status-block { text-align: center; margin-bottom: 4px; }
+  #turn-label { font-weight: bold; font-size: 15px; }
+  #status-label { font-style: italic; font-size: 12px; color: var(--text); margin-top: 2px; }
+  #timer-label { font-weight: bold; font-size: 12px; color: var(--button); margin-top: 2px; height: 14px; }
+
+  .leaderboard { text-align: center; margin-bottom: 10px; }
+  .leaderboard-title { font-weight: bold; font-size: 13px; color: var(--sidebar); }
+  #current-set-score { font-size: 12px; color: var(--text); margin-top: 2px; }
+  #set-history { font-size: 11px; color: var(--text); margin-top: 4px; }
+  #set-history div { margin: 1px 0; }
+
+  #board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #board-card {
+    background: rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  #board-grid {
+    display: grid;
+    gap: 3px;
+    background: var(--grid-line);
+    padding: 3px;
+    border-radius: 4px;
+  }
+  .cell {
+    background: var(--cell-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 2px;
+    user-select: none;
+    transition: background-color .1s ease;
+  }
+
+  #burger-btn {
+    position: absolute;
+    top: 40px; left: 10px;
+    width: 44px; height: 30px;
+    background: var(--button);
+    color: var(--sidebar);
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 40;
+  }
+  #burger-btn:hover { background: var(--button-hover); }
+  #burger-menu {
+    position: absolute;
+    display: none;
+    background: #2c2c30;
+    border-radius: 4px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    z-index: 55;
+    overflow: hidden;
+    min-width: 150px;
+  }
+  #burger-menu a {
+    display: block; padding: 8px 14px; color: var(--text);
+    font-size: 13px; cursor: pointer; text-decoration: none;
+  }
+  #burger-menu a:hover { background: rgba(255,255,255,0.1); }
+  #burger-menu hr { border: none; border-top: 1px solid #4a4a50; margin: 4px 0; }
+
+  /* ---------- MODALS ---------- */
+  .modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 22px 26px;
+    min-width: 300px;
+    max-width: 90vw;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    font-size: 13px;
+    color: var(--sidebar);
+  }
+  .modal h3 { margin: 0 0 14px 0; font-size: 15px; }
+  .modal p { line-height: 1.5; }
+  .modal-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .modal-row label { font-weight: bold; }
+  .modal select, .modal input[type=text] {
+    font-family: inherit; font-size: 13px; padding: 5px 8px; border-radius: 4px; border: 1px solid #ccc;
+  }
+  .modal-checkrow { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal-buttons .btn { padding: 8px 16px; }
+  .btn-secondary { background: #e0e0e0; color: #333; }
+  .btn-secondary:hover { background: #ccc; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- MENU BAR -->
+  <div id="menubar" class="hidden">
+    <div class="menu-item">
+      <span class="menu-label">Game</span>
+      <div class="dropdown">
+        <a onclick="Game.playAgain()">Play Again (R)</a>
+        <a onclick="Game.confirmResetScores()">Reset Score</a>
+        <hr>
+        <a onclick="Game.goBackHome()">Back to Home</a>
+        <a onclick="Game.exitGame()">Exit (ESC)</a>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="menu-label">Settings</span>
+      <div class="dropdown">
+        <div class="submenu-wrap">
+          <div class="sub-toggle">Board Size ▸</div>
+          <div class="submenu" id="board-size-submenu"></div>
+        </div>
+        <div class="submenu-wrap">
+          <div class="sub-toggle">Background ▸</div>
+          <div class="submenu" id="background-submenu"></div>
+        </div>
+        <hr>
+        <div class="sub-toggle check-row"><input type="checkbox" id="sound-check" checked onchange="Game.setSound(this.checked)"> Sound Effects</div>
+        <div class="sub-toggle check-row"><input type="checkbox" id="timer-check" onchange="Game.toggleTimerFromMenu(this.checked)"> Turn Timer (10s)</div>
+        <div class="sub-toggle check-row"><input type="checkbox" id="infinite-check" onchange="Game.setInfinite(this.checked)"> Infinite Scoring</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="menu-label">Help</span>
+      <div class="dropdown">
+        <a onclick="Game.showAbout()">About</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen">
+    <canvas id="home-pattern-canvas"></canvas>
+    <div class="home-card">
+      <canvas id="home-banner-canvas" width="380" height="250"></canvas>
+      <p class="home-subtitle">Pick a mode to start playing!</p>
+      <div class="home-buttons">
+        <button class="btn" onclick="Game.openNameDialog(false)">Player vs Player</button>
+        <button class="btn" onclick="Game.openNameDialog(true)">Player vs Computer</button>
+        <button class="btn" onclick="Game.openHomeSettings()">Settings</button>
+        <button class="btn" onclick="Game.exitGame()" style="margin-top:8px;">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen">
+    <canvas id="game-banner"></canvas>
+
+    <div class="names-row">
+      <div class="player-block">
+        <div class="player-name" id="p1-name" style="color:var(--x-color)">Player 1</div>
+        <div class="crowns" id="p1-crowns" style="color:var(--x-color)"></div>
+      </div>
+      <div id="set-label">Set: 1</div>
+      <div class="player-block">
+        <div class="player-name" id="p2-name" style="color:var(--o-color)">Player 2</div>
+        <div class="crowns" id="p2-crowns" style="color:var(--o-color)"></div>
+      </div>
+    </div>
+
+    <div class="status-block">
+      <div id="turn-label">X</div>
+      <div id="status-label">Playing</div>
+      <div id="timer-label"></div>
+    </div>
+
+    <div class="leaderboard">
+      <div class="leaderboard-title">Leaderboard</div>
+      <div id="current-set-score"></div>
+      <div id="set-history"></div>
+    </div>
+
+    <div id="board-wrap">
+      <div id="board-card">
+        <div id="board-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <button id="burger-btn" style="display:none;" onclick="Game.toggleBurgerMenu(event)">☰</button>
+  <div id="burger-menu">
+    <a onclick="Game.playAgain()">Play Again</a>
+    <a onclick="Game.confirmResetScores()">Reset Score</a>
+    <hr>
+    <a onclick="Game.goBackHome()">Back</a>
+  </div>
+
+  <!-- NAME ENTRY MODAL -->
+  <div class="modal-overlay" id="name-modal-overlay">
+    <div class="modal" id="name-modal">
+      <h3>Enter Player Names</h3>
+      <div id="name-step-1">
+        <div class="modal-row"><label>Player 1 (X):</label><input type="text" id="input-p1" value="Player 1"></div>
+        <div class="modal-buttons">
+          <button class="btn btn-secondary" onclick="Game.closeNameDialog()">Cancel</button>
+          <button class="btn" id="name-step-1-action" onclick="Game.nameDialogNext()">Next</button>
+        </div>
+      </div>
+      <div id="name-step-2" style="display:none;">
+        <div class="modal-row"><label>Player 2 (O):</label><input type="text" id="input-p2" value="Player 2"></div>
+        <div class="modal-buttons">
+          <button class="btn btn-secondary" onclick="Game.nameDialogBack()">Back</button>
+          <button class="btn" onclick="Game.nameDialogStart()">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settings-modal-overlay">
+    <div class="modal">
+      <h3>Settings</h3>
+      <div class="modal-row"><label>Board Size:</label>
+        <select id="settings-board-size"></select>
+      </div>
+      <div class="modal-row"><label>Background:</label>
+        <select id="settings-bg"></select>
+      </div>
+      <div class="modal-checkrow"><input type="checkbox" id="settings-timer"> <span>Turn Timer (10s)</span></div>
+      <div class="modal-checkrow"><input type="checkbox" id="settings-sound" checked> <span>Sound Effects</span></div>
+      <div class="modal-checkrow"><input type="checkbox" id="settings-infinite"> <span>Infinite Scoring</span></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="Game.closeHomeSettings()">Cancel</button>
+        <button class="btn" onclick="Game.applyHomeSettings()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO MODAL (about / game over / etc, replaces messagebox) -->
+  <div class="modal-overlay" id="info-modal-overlay">
+    <div class="modal">
+      <h3 id="info-modal-title">Title</h3>
+      <p id="info-modal-body"></p>
+      <div class="modal-buttons">
+        <button class="btn" onclick="Game.closeInfoModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <div class="modal-overlay" id="confirm-modal-overlay">
+    <div class="modal">
+      <h3 id="confirm-modal-title">Confirm</h3>
+      <p id="confirm-modal-body"></p>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="Game.closeConfirmModal(false)">Cancel</button>
+        <button class="btn" onclick="Game.closeConfirmModal(true)">Yes</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   ITAKTAK MO GAME! - web port of the original Tkinter/Python version
+   Single-file HTML/CSS/JS so it can be deployed as a static site
+   (e.g. on Vercel) with zero build step.
+   ===================================================================== */
+
+const COLOR_X = "#2E86AB";
+const COLOR_O = "#C1440E";
+const COLOR_WIN_LINE = "#FFD166";
+const COLOR_WIN_FLASH = "#FFF3B0";
+const COLOR_CELL_BG = "#FFFFFF";
+const COLOR_CELL_HOVER = "#EAF5F0";
+const PATTERN_BG_COLOR = "#F7EFDD";
+const PATTERN_LINE_COLOR = "#C97B67";
+const PATTERN_LINE_LIGHT = "#E3A594";
+const BADGE_DARK = "#15151B";
+const BADGE_TEAL = "#1E7A82";
+const BADGE_ORANGE = "#E8942C";
+
+const DEFAULT_BOARD_SIZE = 3;
+const AVAILABLE_BOARD_SIZES = [3, 4, 5, 6];
+const TURN_TIMER_SECONDS = 10;
+
+const CELL_STYLE_BY_SIZE = {
+  3: { fontSize: 48 },
+  4: { fontSize: 38 },
+  5: { fontSize: 30 },
+  6: { fontSize: 24 },
+};
+
+const BACKGROUND_THEMES = {
+  "Soft Green": "#80BDAB",
+  "Ocean Blue": "#6FA8DC",
+  "Sunset Peach": "#F6B99A",
+  "Lavender": "#B7A6D9",
+  "Charcoal": "#5B5F63",
+};
+
+const Game = {
+  // state
+  boardSize: DEFAULT_BOARD_SIZE,
+  board: [],
+  winningCombinations: [],
+  currentPlayer: "X",
+  startingPlayer: "X",
+  gameActive: true,
+  moveHistory: [],
+  playerXName: "",
+  playerOName: "",
+  vsComputer: false,
+  timerEnabled: false,
+  soundEnabled: true,
+  infiniteScoring: false,
+  turnSecondsLeft: TURN_TIMER_SECONDS,
+  timerInterval: null,
+  computerMoveTimeout: null,
+  flashInterval: null,
+  flashState: false,
+  currentBg: BACKGROUND_THEMES["Soft Green"],
+
+  currentSet: 1,
+  setGameScoreX: 0,
+  setGameScoreO: 0,
+  setWinsX: 0,
+  setWinsO: 0,
+  setsToPlay: 3,
+
+  scoreX: 0,
+  scoreO: 0,
+
+  pendingVsComputer: false,
+  audioCtx: null,
+
+  // ---------------- INIT ----------------
+  init() {
+    this.loadScores();
+    this.populateBoardSizeMenus();
+    this.populateBackgroundMenus();
+    this.drawHomePattern();
+    this.drawHomeBanner();
+    window.addEventListener("resize", () => {
+      this.drawHomePattern();
+      this.drawGameBanner();
+    });
+    document.addEventListener("keydown", (e) => this.handleKey(e));
+    this.initTopMenu();
+    document.addEventListener("click", (e) => {
+      // close burger menu on outside click
+      const menu = document.getElementById("burger-menu");
+      const btn = document.getElementById("burger-btn");
+      if (menu.style.display === "block" && e.target !== btn && !menu.contains(e.target)) {
+        menu.style.display = "none";
+      }
+      // close top menu dropdowns/submenus on outside click
+      if (!e.target.closest(".menu-item")) {
+        this.closeAllTopMenus();
+      }
+    });
+  },
+
+  closeAllTopMenus() {
+    document.querySelectorAll(".dropdown.open").forEach((d) => d.classList.remove("open"));
+    document.querySelectorAll(".submenu.open").forEach((s) => s.classList.remove("open"));
+  },
+
+  initTopMenu() {
+    // Top-level menu labels (Game / Settings / Help): click toggles their dropdown
+    document.querySelectorAll(".menu-item").forEach((item) => {
+      const label = item.querySelector(".menu-label");
+      const dropdown = item.querySelector(".dropdown");
+      if (!label || !dropdown) return;
+      label.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const wasOpen = dropdown.classList.contains("open");
+        this.closeAllTopMenus();
+        if (!wasOpen) dropdown.classList.add("open");
+      });
+    });
+
+    // Submenus (Board Size / Background): click toggles their submenu panel
+    document.querySelectorAll(".submenu-wrap").forEach((wrap) => {
+      const toggle = wrap.querySelector(".sub-toggle");
+      const submenu = wrap.querySelector(".submenu");
+      if (!toggle || !submenu) return;
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const wasOpen = submenu.classList.contains("open");
+        document.querySelectorAll(".submenu.open").forEach((s) => s.classList.remove("open"));
+        if (!wasOpen) submenu.classList.add("open");
+      });
+    });
+
+    // Clicking an actual option (board size / theme link, incl. ones added
+    // later by populateBoardSizeMenus/populateBackgroundMenus) closes the menus.
+    // Delegated on the menubar so it also covers links created after this runs.
+    document.getElementById("menubar").addEventListener("click", (e) => {
+      if (e.target.tagName === "A") this.closeAllTopMenus();
+    });
+  },
+
+  // ---------------- AUDIO ----------------
+  beep(freq, durationMs) {
+    if (!this.soundEnabled) return;
+    try {
+      if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = this.audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = "square";
+      gain.gain.value = 0.05;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + durationMs / 1000);
+    } catch (e) { /* audio unavailable, fail silently */ }
+  },
+  playClickSound() { this.beep(700, 0.06); },
+  playWinSound() { this.beep(700, 0.1); setTimeout(() => this.beep(1000, 0.12), 90); },
+  playDrawSound() { this.beep(500, 0.15); },
+  playErrorSound() { this.beep(300, 0.08); },
+
+  // ---------------- HOME PATTERN / BANNER (canvas) ----------------
+  drawHomePattern() {
+    const canvas = document.getElementById("home-pattern-canvas");
+    if (!canvas || document.getElementById("home-screen").style.display === "none") {
+      // still draw even if home hidden isn't necessary, but guard size
+    }
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = canvas.width = rect.width;
+    const h = canvas.height = rect.height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = PATTERN_BG_COLOR;
+    ctx.fillRect(0, 0, w, h);
+
+    const tileSize = 132;
+    const cols = Math.ceil(w / tileSize) + 2;
+    const rows = Math.ceil(h / tileSize) + 2;
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const cx = col * tileSize + tileSize / 2;
+        const cy = row * tileSize + tileSize / 2;
+        this.drawDoodleTile(ctx, cx, cy, row, col);
+      }
+    }
+  },
+
+  // deterministic small PRNG so the pattern is stable across redraws
+  seededRandom(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return (s >>> 8) / 16777216;
+    };
+  },
+
+  drawDoodleTile(ctx, cx, cy, row, col) {
+    const rnd = this.seededRandom(((row * 92821) ^ (col * 68917) ^ 12345) >>> 0);
+    const angle = (rnd() * 32 - 16) * Math.PI / 180;
+    const half = 26 + rnd() * 6;
+    const color = rnd() < 0.7 ? PATTERN_LINE_COLOR : PATTERN_LINE_LIGHT;
+
+    const rot = (x, y) => {
+      const rx = x * Math.cos(angle) - y * Math.sin(angle);
+      const ry = x * Math.sin(angle) + y * Math.cos(angle);
+      return [cx + rx, cy + ry];
+    };
+
+    const third = (half * 2) / 3;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+
+    [-third / 2, third / 2].forEach((off) => {
+      let [x1, y1] = rot(off, -half);
+      let [x2, y2] = rot(off, half);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      [x1, y1] = rot(-half, off);
+      [x2, y2] = rot(half, off);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    });
+
+    let cellPositions = [
+      [-third, -third], [0, -third], [third, -third],
+      [-third, 0], [0, 0], [third, 0],
+      [-third, third], [0, third], [third, third],
+    ];
+    // shuffle deterministically
+    for (let i = cellPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [cellPositions[i], cellPositions[j]] = [cellPositions[j], cellPositions[i]];
+    }
+    const count = 2 + Math.floor(rnd() * 3);
+    const markRadius = third * 0.32;
+    for (let i = 0; i < count; i++) {
+      const [mx, my] = cellPositions[i];
+      if (rnd() < 0.5) {
+        let [x1, y1] = rot(mx - markRadius, my - markRadius);
+        let [x2, y2] = rot(mx + markRadius, my + markRadius);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        let [x3, y3] = rot(mx - markRadius, my + markRadius);
+        let [x4, y4] = rot(mx + markRadius, my - markRadius);
+        ctx.beginPath(); ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
+      } else {
+        const [ox, oy] = rot(mx, my);
+        ctx.beginPath();
+        ctx.arc(ox, oy, markRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  },
+
+  roundedRectPath(ctx, x1, y1, x2, y2, r) {
+    ctx.beginPath();
+    ctx.moveTo(x1 + r, y1);
+    ctx.lineTo(x2 - r, y1);
+    ctx.quadraticCurveTo(x2, y1, x2, y1 + r);
+    ctx.lineTo(x2, y2 - r);
+    ctx.quadraticCurveTo(x2, y2, x2 - r, y2);
+    ctx.lineTo(x1 + r, y2);
+    ctx.quadraticCurveTo(x1, y2, x1, y2 - r);
+    ctx.lineTo(x1, y1 + r);
+    ctx.quadraticCurveTo(x1, y1, x1 + r, y1);
+    ctx.closePath();
+  },
+
+  drawXMark(ctx, cx, cy, r, color, width) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r, cy + r); ctx.lineTo(cx + r, cy - r); ctx.stroke();
+  },
+
+  drawHomeBanner() {
+    const canvas = document.getElementById("home-banner-canvas");
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width, height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const badgeSize = 150;
+    const bx1 = cx - badgeSize / 2, by1 = 6;
+    const bx2 = bx1 + badgeSize, by2 = by1 + badgeSize;
+
+    ctx.fillStyle = BADGE_TEAL;
+    this.roundedRectPath(ctx, bx1 - 10, by1 + 16, bx2 - 10, by2 + 16, 28);
+    ctx.fill();
+
+    ctx.fillStyle = BADGE_DARK;
+    this.roundedRectPath(ctx, bx1, by1, bx2, by2, 28);
+    ctx.fill();
+
+    const pad = 22;
+    const ix1 = bx1 + pad, iy1 = by1 + pad, ix2 = bx2 - pad, iy2 = by2 - pad;
+    ctx.fillStyle = "#FFFFFF";
+    this.roundedRectPath(ctx, ix1, iy1, ix2, iy2, 14);
+    ctx.fill();
+
+    const gx1 = ix1 + (ix2 - ix1) * 0.34, gx2 = ix1 + (ix2 - ix1) * 0.66;
+    const gy1 = iy1 + (iy2 - iy1) * 0.34, gy2 = iy1 + (iy2 - iy1) * 0.66;
+    ctx.strokeStyle = "#2B2B33";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(gx1, iy1 + 6); ctx.lineTo(gx1, iy2 - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx2, iy1 + 6); ctx.lineTo(gx2, iy2 - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix1 + 6, gy1); ctx.lineTo(ix2 - 6, gy1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix1 + 6, gy2); ctx.lineTo(ix2 - 6, gy2); ctx.stroke();
+
+    this.drawXMark(ctx, (ix1 + gx1) / 2, (iy1 + gy1) / 2, 13, COLOR_X, 4);
+    const r = 13;
+    const occx = (gx1 + gx2) / 2, occy = (gy1 + gy2) / 2;
+    ctx.strokeStyle = COLOR_O; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(occx, occy, r, 0, Math.PI * 2); ctx.stroke();
+    this.drawXMark(ctx, (gx2 + ix2) / 2, (gy2 + iy2) / 2, 13, COLOR_X, 4);
+
+    ctx.strokeStyle = BADGE_TEAL; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(bx2 - 4, by1 + 2); ctx.lineTo(bx2 + 18, by1 - 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx2 + 6, by1 + 18); ctx.lineTo(bx2 + 24, by1 + 6); ctx.stroke();
+    ctx.strokeStyle = BADGE_ORANGE;
+    ctx.beginPath(); ctx.moveTo(bx1 + 4, by2 - 2); ctx.lineTo(bx1 - 18, by2 + 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx1 - 6, by2 - 18); ctx.lineTo(bx1 - 24, by2 - 6); ctx.stroke();
+
+    const ty = by2 + 32;
+    ctx.fillStyle = "#3F3F44";
+    ctx.font = "bold 20px Helvetica, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("ITAKTAK MO", cx, ty);
+    ctx.fillStyle = BADGE_ORANGE;
+    ctx.font = "bold 26px Helvetica, Arial, sans-serif";
+    ctx.fillText("GAME", cx - 6, ty + 30);
+
+    const exX = cx + 64;
+    ctx.fillStyle = BADGE_ORANGE;
+    ctx.beginPath();
+    this.roundedRectPath(ctx, exX - 13, ty + 16, exX + 13, ty + 42, 13);
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 18px Helvetica, Arial, sans-serif";
+    ctx.fillText("!", exX, ty + 34);
+
+    ctx.strokeStyle = "#FDCB9E"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(cx - 108, ty + 52); ctx.lineTo(cx + 108, ty + 52); ctx.stroke();
+  },
+
+  drawGameBanner() {
+    const canvas = document.getElementById("game-banner");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const w = canvas.width = rect.width;
+    const h = canvas.height = canvas.clientHeight || 10;
+    const ctx = canvas.getContext("2d");
+    const lightShade = this.shadeColor(this.currentBg, 1.25);
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, lightShade);
+    grad.addColorStop(1, "#FDCB9E");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  shadeColor(hex, factor) {
+    const r = Math.max(0, Math.min(255, Math.round(parseInt(hex.substr(1, 2), 16) * factor)));
+    const g = Math.max(0, Math.min(255, Math.round(parseInt(hex.substr(3, 2), 16) * factor)));
+    const b = Math.max(0, Math.min(255, Math.round(parseInt(hex.substr(5, 2), 16) * factor)));
+    return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  },
+
+  // ---------------- BACKGROUND THEME ----------------
+  changeBackground(color) {
+    this.currentBg = color;
+    document.documentElement.style.setProperty("--bg", color);
+    this.drawGameBanner();
+  },
+
+  // ---------------- MENUS (board size / background submenus) ----------------
+  populateBoardSizeMenus() {
+    const menu = document.getElementById("board-size-submenu");
+    menu.innerHTML = "";
+    AVAILABLE_BOARD_SIZES.forEach((size) => {
+      const a = document.createElement("a");
+      a.textContent = `${size} x ${size}`;
+      a.onclick = () => this.changeBoardSize(size);
+      menu.appendChild(a);
+    });
+
+    const sel = document.getElementById("settings-board-size");
+    sel.innerHTML = "";
+    AVAILABLE_BOARD_SIZES.forEach((size) => {
+      const opt = document.createElement("option");
+      opt.value = size; opt.textContent = `${size} x ${size}`;
+      sel.appendChild(opt);
+    });
+  },
+
+  populateBackgroundMenus() {
+    const menu = document.getElementById("background-submenu");
+    menu.innerHTML = "";
+    Object.entries(BACKGROUND_THEMES).forEach(([name, color]) => {
+      const a = document.createElement("a");
+      a.textContent = name;
+      a.onclick = () => this.changeBackground(color);
+      menu.appendChild(a);
+    });
+
+    const sel = document.getElementById("settings-bg");
+    sel.innerHTML = "";
+    Object.keys(BACKGROUND_THEMES).forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  },
+
+  // ---------------- WINNING COMBINATIONS ----------------
+  generateWinningCombinations(size) {
+    const combos = [];
+    for (let row = 0; row < size; row++) {
+      combos.push(Array.from({ length: size }, (_, col) => row * size + col));
+    }
+    for (let col = 0; col < size; col++) {
+      combos.push(Array.from({ length: size }, (_, row) => row * size + col));
+    }
+    combos.push(Array.from({ length: size }, (_, i) => i * size + i));
+    combos.push(Array.from({ length: size }, (_, i) => i * size + (size - 1 - i)));
+    return combos;
+  },
+
+  changeBoardSize(newSize) {
+    newSize = parseInt(newSize);
+    if (newSize === this.boardSize) return;
+
+    const doChange = () => {
+      this.boardSize = newSize;
+      this.winningCombinations = this.generateWinningCombinations(newSize);
+      this.board = new Array(newSize * newSize).fill("");
+      this.moveHistory = [];
+      if (document.getElementById("game-screen").style.display === "flex") {
+        this.drawBoard();
+        this.resetBoard();
+      }
+    };
+
+    if (this.board.some((m) => m !== "") && document.getElementById("game-screen").style.display === "flex") {
+      this.showConfirm("Change Board Size",
+        `Switching to a ${newSize}x${newSize} board will restart the current game. Continue?`,
+        (yes) => { if (yes) doChange(); });
+    } else {
+      doChange();
+    }
+  },
+
+  // ---------------- HOME -> GAME TRANSITION ----------------
+  openNameDialog(vsComputer) {
+    this.pendingVsComputer = vsComputer;
+    document.getElementById("name-modal-overlay").classList.add("open");
+    document.getElementById("name-step-1").style.display = "block";
+    document.getElementById("name-step-2").style.display = "none";
+    document.getElementById("input-p1").value = "Player 1";
+    document.getElementById("input-p2").value = "Player 2";
+    document.getElementById("name-step-1-action").textContent = vsComputer ? "Start" : "Next";
+    document.getElementById("name-step-1-action").onclick = vsComputer
+      ? () => this.nameDialogStartVsComputer()
+      : () => this.nameDialogNext();
+  },
+  closeNameDialog() {
+    document.getElementById("name-modal-overlay").classList.remove("open");
+  },
+  nameDialogNext() {
+    this.playerXName = document.getElementById("input-p1").value.trim() || "Player 1";
+    document.getElementById("name-step-1").style.display = "none";
+    document.getElementById("name-step-2").style.display = "block";
+  },
+  nameDialogBack() {
+    document.getElementById("name-step-2").style.display = "none";
+    document.getElementById("name-step-1").style.display = "block";
+  },
+  nameDialogStart() {
+    this.playerOName = document.getElementById("input-p2").value.trim() || "Player 2";
+    this.closeNameDialog();
+    this.startGameFromHome(false);
+  },
+  nameDialogStartVsComputer() {
+    this.playerXName = document.getElementById("input-p1").value.trim() || "Player 1";
+    this.playerOName = "Computer";
+    this.closeNameDialog();
+    this.startGameFromHome(true);
+  },
+
+  startGameFromHome(vsComputer) {
+    this.vsComputer = vsComputer;
+    document.getElementById("home-screen").style.display = "none";
+    document.getElementById("game-screen").style.display = "flex";
+    document.getElementById("menubar").classList.remove("hidden");
+    document.getElementById("burger-btn").style.display = "block";
+
+    this.resetMatchState();
+    this.winningCombinations = this.generateWinningCombinations(this.boardSize);
+    this.board = new Array(this.boardSize * this.boardSize).fill("");
+    this.moveHistory = [];
+
+    document.getElementById("p1-name").textContent = this.playerXName || "Player 1";
+    document.getElementById("p2-name").textContent = this.playerOName || "Player 2";
+
+    this.drawBoard();
+    this.drawGameBanner();
+    this.updateCrowns();
+    this.updateSetScoreLabel();
+    this.reflowSetHistory();
+    this.resetBoard();
+  },
+
+  goBackHome() {
+    this.gameActive = false;
+    this.stopTurnTimer();
+    clearTimeout(this.computerMoveTimeout);
+    clearInterval(this.flashInterval);
+
+    document.getElementById("game-screen").style.display = "none";
+    document.getElementById("menubar").classList.add("hidden");
+    document.getElementById("burger-btn").style.display = "none";
+    document.getElementById("burger-menu").style.display = "none";
+    document.getElementById("home-screen").style.display = "flex";
+
+    this.board = new Array(this.boardSize * this.boardSize).fill("");
+    this.moveHistory = [];
+    this.currentPlayer = "X";
+    this.playerXName = "";
+    this.playerOName = "";
+
+    this.drawHomePattern();
+    this.drawHomeBanner();
+  },
+
+  // ---------------- BOARD DRAWING ----------------
+  drawBoard() {
+    const grid = document.getElementById("board-grid");
+    grid.innerHTML = "";
+    grid.style.gridTemplateColumns = `repeat(${this.boardSize}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${this.boardSize}, 1fr)`;
+
+    const style = CELL_STYLE_BY_SIZE[this.boardSize] || CELL_STYLE_BY_SIZE[6];
+    const cellPx = Math.max(48, 340 / this.boardSize);
+
+    for (let i = 0; i < this.boardSize * this.boardSize; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = cellPx + "px";
+      cell.style.height = cellPx + "px";
+      cell.style.fontSize = style.fontSize + "px";
+      cell.dataset.index = i;
+      cell.addEventListener("click", () => this.handleClick(i));
+      cell.addEventListener("mouseenter", () => this.onCellHover(i));
+      cell.addEventListener("mouseleave", () => this.onCellLeave(i));
+      grid.appendChild(cell);
+    }
+  },
+
+  cellEl(i) { return document.querySelector(`.cell[data-index="${i}"]`); },
+
+  onCellHover(i) {
+    if (this.gameActive && this.board[i] === "") this.cellEl(i).style.background = COLOR_CELL_HOVER;
+  },
+  onCellLeave(i) {
+    if (this.gameActive && this.board[i] === "") this.cellEl(i).style.background = COLOR_CELL_BG;
+  },
+
+  // ---------------- GAME LOGIC ----------------
+  handleClick(index) {
+    if (!this.gameActive) return;
+    if (this.vsComputer && this.currentPlayer === "O") return;
+    if (this.board[index] !== "") { this.playErrorSound(); return; }
+    this.applyMove(index);
+  },
+
+  applyMove(index) {
+    this.board[index] = this.currentPlayer;
+    this.moveHistory.push(index);
+
+    const el = this.cellEl(index);
+    el.textContent = this.currentPlayer;
+    el.style.color = this.currentPlayer === "X" ? COLOR_X : COLOR_O;
+    el.style.background = COLOR_CELL_BG;
+    this.playClickSound();
+
+    const winningCombo = this.checkWinner();
+    if (winningCombo) {
+      this.handleWin(winningCombo);
+    } else if (this.board.every((m) => m !== "")) {
+      this.handleDraw();
+    } else {
+      this.switchPlayer();
+    }
+  },
+
+  switchPlayer() {
+    this.currentPlayer = this.currentPlayer === "X" ? "O" : "X";
+    this.updateStatus();
+    this.restartTurnTimer();
+    this.maybeTriggerComputerTurn();
+  },
+
+  checkWinner() {
+    for (const combo of this.winningCombinations) {
+      const first = this.board[combo[0]];
+      if (first !== "" && combo.every((i) => this.board[i] === first)) return combo;
+    }
+    return null;
+  },
+
+  handleWin(combo) {
+    this.gameActive = false;
+    this.stopTurnTimer();
+    const winner = this.currentPlayer;
+    const winnerName = winner === "X" ? this.playerXName : this.playerOName;
+    const displayName = winnerName || `Player ${winner}`;
+
+    if (winner === "X") this.setGameScoreX++; else this.setGameScoreO++;
+
+    this.updateSetScoreLabel();
+    this.updateCrowns();
+    this.updateStatus(`${displayName} Wins the Game!`);
+    this.highlightWinner(combo);
+    this.playWinSound();
+
+    this.showInfo("Game Over", `${displayName} Wins the Game!`, () => {
+      if (!this.infiniteScoring && (this.setGameScoreX >= 3 || this.setGameScoreO >= 3)) {
+        this.completeSet(winner);
+      } else {
+        this.switchStartingPlayer();
+        this.resetBoard();
+      }
+    });
+  },
+
+  handleDraw() {
+    this.gameActive = false;
+    this.stopTurnTimer();
+    this.updateStatus("It's a Draw!");
+    this.playDrawSound();
+    this.showInfo("Game Over", "It's a Draw!", () => {
+      this.switchStartingPlayer();
+      this.resetBoard();
+    });
+  },
+
+  highlightWinner(combo) {
+    combo.forEach((i) => { this.cellEl(i).style.background = COLOR_WIN_LINE; });
+    this.flashState = false;
+    clearInterval(this.flashInterval);
+    this.flashInterval = setInterval(() => {
+      const color = this.flashState ? COLOR_WIN_FLASH : COLOR_WIN_LINE;
+      combo.forEach((i) => {
+        const el = this.cellEl(i);
+        if (el) el.style.background = color;
+      });
+      this.flashState = !this.flashState;
+    }, 500);
+  },
+
+  // ---------------- UNDO ----------------
+  undoMove() {
+    if (!this.gameActive) {
+      this.showInfo("Undo Move", "You can't undo after the game has ended - use Play Again to start a new round.");
+      return;
+    }
+    if (this.moveHistory.length === 0) return;
+
+    const movesToUndo = (this.vsComputer && this.moveHistory.length >= 2) ? 2 : 1;
+    for (let n = 0; n < movesToUndo; n++) {
+      if (this.moveHistory.length === 0) break;
+      const lastIndex = this.moveHistory.pop();
+      this.board[lastIndex] = "";
+      const el = this.cellEl(lastIndex);
+      el.textContent = "";
+      el.style.background = COLOR_CELL_BG;
+      this.currentPlayer = this.currentPlayer === "X" ? "O" : "X";
+    }
+    this.updateStatus();
+    this.restartTurnTimer();
+  },
+
+  // ---------------- VS COMPUTER ----------------
+  maybeTriggerComputerTurn() {
+    if (this.vsComputer && this.gameActive && this.currentPlayer === "O") {
+      this.computerMoveTimeout = setTimeout(() => this.computerMove(), 500);
+    }
+  },
+
+  computerMove() {
+    if (!this.gameActive) return;
+    const chosen = this.findWinningMove("O") ?? this.findWinningMove("X") ?? this.chooseRandomEmptyCell();
+    if (chosen !== null && chosen !== undefined) this.applyMove(chosen);
+  },
+
+  findWinningMove(player) {
+    for (let i = 0; i < this.board.length; i++) {
+      if (this.board[i] !== "") continue;
+      this.board[i] = player;
+      const wouldWin = this.checkWinner() !== null;
+      this.board[i] = "";
+      if (wouldWin) return i;
+    }
+    return null;
+  },
+
+  chooseRandomEmptyCell() {
+    const empty = [];
+    this.board.forEach((m, i) => { if (m === "") empty.push(i); });
+    if (empty.length === 0) return null;
+    return empty[Math.floor(Math.random() * empty.length)];
+  },
+
+  // ---------------- TURN TIMER ----------------
+  toggleTimerFromMenu(checked) {
+    this.timerEnabled = checked;
+    if (this.timerEnabled) this.restartTurnTimer();
+    else { this.stopTurnTimer(); document.getElementById("timer-label").textContent = ""; }
+  },
+
+  restartTurnTimer() {
+    this.stopTurnTimer();
+    if (!this.timerEnabled || !this.gameActive) return;
+    this.turnSecondsLeft = TURN_TIMER_SECONDS;
+    this.tickTurnTimer();
+  },
+
+  tickTurnTimer() {
+    if (!this.gameActive) { this.timerInterval = null; return; }
+    const label = document.getElementById("timer-label");
+    label.textContent = `Time Left: ${this.turnSecondsLeft}s`;
+    if (this.turnSecondsLeft <= 0) { this.handleTurnTimeout(); return; }
+    this.turnSecondsLeft -= 1;
+    this.timerInterval = setTimeout(() => this.tickTurnTimer(), 1000);
+  },
+
+  stopTurnTimer() {
+    if (this.timerInterval !== null) { clearTimeout(this.timerInterval); this.timerInterval = null; }
+  },
+
+  handleTurnTimeout() {
+    if (!this.gameActive) return;
+    this.playErrorSound();
+    const loser = this.currentPlayer;
+    const winner = loser === "X" ? "O" : "X";
+    this.applyTimeoutGameWin(winner, loser);
+  },
+
+  applyTimeoutGameWin(winner, loser) {
+    this.gameActive = false;
+    this.stopTurnTimer();
+    if (winner === "X") this.setGameScoreX++; else this.setGameScoreO++;
+    this.updateSetScoreLabel();
+    this.updateCrowns();
+    this.playWinSound();
+    const winnerName = winner === "X" ? this.playerXName : this.playerOName;
+    const displayName = winnerName || `Player ${winner}`;
+    this.showInfo("Time Out", `${displayName} wins the game because Player ${loser} ran out of time.`, () => {
+      if (!this.infiniteScoring && (this.setGameScoreX >= 3 || this.setGameScoreO >= 3)) {
+        this.completeSet(winner);
+      } else {
+        this.switchStartingPlayer();
+        this.resetBoard();
+      }
+    });
+  },
+
+  // ---------------- RESETTING ----------------
+  playAgain() { this.resetBoard(); },
+
+  resetBoard() {
+    clearInterval(this.flashInterval);
+    clearTimeout(this.computerMoveTimeout);
+    this.stopTurnTimer();
+
+    this.board = new Array(this.boardSize * this.boardSize).fill("");
+    this.moveHistory = [];
+    this.currentPlayer = this.startingPlayer;
+    this.gameActive = true;
+
+    document.querySelectorAll(".cell").forEach((cell) => {
+      cell.textContent = "";
+      cell.style.background = COLOR_CELL_BG;
+    });
+
+    this.updateStatus();
+    this.restartTurnTimer();
+    this.maybeTriggerComputerTurn();
+  },
+
+  switchStartingPlayer() {
+    this.startingPlayer = this.startingPlayer === "X" ? "O" : "X";
+  },
+
+  confirmResetScores() {
+    this.showConfirm("Reset Score", "Are you sure you want to reset both players' scores?\nThis cannot be undone.",
+      (yes) => { if (yes) this.resetScores(); });
+  },
+
+  resetScores() {
+    this.scoreX = 0; this.scoreO = 0;
+    this.resetMatchState();
+    document.getElementById("set-history").innerHTML = "";
+    this.updateCrowns();
+    document.getElementById("set-label").textContent = `Set: ${this.currentSet}`;
+    this.updateSetScoreLabel();
+    this.saveScores();
+    this.resetBoard();
+  },
+
+  resetMatchState() {
+    this.currentSet = 1;
+    this.setGameScoreX = 0;
+    this.setGameScoreO = 0;
+    this.setWinsX = 0;
+    this.setWinsO = 0;
+    this.startingPlayer = "X";
+  },
+
+  // ---------------- STATUS / LABELS ----------------
+  updateSetScoreLabel() {
+    document.getElementById("current-set-score").textContent =
+      `${this.playerXName || "Player 1"}: ${this.setGameScoreX}  |  ${this.playerOName || "Player 2"}: ${this.setGameScoreO}`;
+    document.getElementById("set-label").textContent = this.infiniteScoring ? "Infinite Scoring" : `Set: ${this.currentSet}`;
+  },
+
+  updateCrowns() {
+    const format = (count) => {
+      const crowns = "👑".repeat(count);
+      const lines = [];
+      for (let i = 0; i < crowns.length; i += 3) lines.push(crowns.slice(i, i + 3));
+      return lines.join("\n");
+    };
+    document.getElementById("p1-crowns").textContent = format(this.setGameScoreX);
+    document.getElementById("p2-crowns").textContent = format(this.setGameScoreO);
+  },
+
+  reflowSetHistory() {
+    document.getElementById("set-history").innerHTML = "";
+  },
+
+  appendSetResult(winner) {
+    const container = document.getElementById("set-history");
+    const div = document.createElement("div");
+    div.textContent = `Set ${this.currentSet}: ${this.playerXName || "Player 1"} ${this.setGameScoreX} - ${this.playerOName || "Player 2"} ${this.setGameScoreO} (${winner} wins)`;
+    container.appendChild(div);
+  },
+
+  completeSet(winner) {
+    if (winner === "X") this.setWinsX++; else this.setWinsO++;
+    this.appendSetResult(winner);
+    this.currentSet++;
+
+    if (this.currentSet > this.setsToPlay) {
+      const matchWinnerName = this.setWinsX > this.setWinsO ? this.playerXName : this.playerOName;
+      const winnerLabel = matchWinnerName || (this.setWinsX > this.setWinsO ? "Player X" : "Player O");
+      this.showInfo("Match Over",
+        `${winnerLabel} wins the match!\n\nSets: ${this.playerXName || "Player 1"} ${this.setWinsX} - ${this.playerOName || "Player 2"} ${this.setWinsO}`,
+        () => {
+          this.resetMatchState();
+          document.getElementById("set-history").innerHTML = "";
+          document.getElementById("set-label").textContent = `Set: ${this.currentSet}`;
+          this.updateSetScoreLabel();
+          this.resetBoard();
+        });
+      return;
+    }
+
+    this.setGameScoreX = 0;
+    this.setGameScoreO = 0;
+    document.getElementById("set-label").textContent = `Set: ${this.currentSet}`;
+    this.updateSetScoreLabel();
+    this.switchStartingPlayer();
+    this.resetBoard();
+  },
+
+  updateStatus(statusText) {
+    const turnLabel = document.getElementById("turn-label");
+    turnLabel.textContent = this.currentPlayer;
+    turnLabel.style.color = this.currentPlayer === "X" ? COLOR_X : COLOR_O;
+
+    const statusLabel = document.getElementById("status-label");
+    if (statusText) {
+      statusLabel.textContent = statusText;
+    } else if (this.vsComputer && this.currentPlayer === "O") {
+      statusLabel.textContent = "Computer is thinking...";
+    } else {
+      const currentName = this.currentPlayer === "X" ? this.playerXName : this.playerOName;
+      const displayName = currentName || `Player ${this.currentPlayer}`;
+      statusLabel.textContent = `${displayName}'s Turn`;
+    }
+  },
+
+  // ---------------- SETTINGS TOGGLES ----------------
+  setSound(v) { this.soundEnabled = v; document.getElementById("settings-sound").checked = v; },
+  setInfinite(v) {
+    this.infiniteScoring = v;
+    document.getElementById("settings-infinite").checked = v;
+    this.updateSetScoreLabel();
+  },
+
+  // ---------------- HOME SETTINGS MODAL ----------------
+  openHomeSettings() {
+    document.getElementById("settings-board-size").value = this.boardSize;
+    const currentThemeName = Object.entries(BACKGROUND_THEMES).find(([, c]) => c === this.currentBg)?.[0] || "Soft Green";
+    document.getElementById("settings-bg").value = currentThemeName;
+    document.getElementById("settings-timer").checked = this.timerEnabled;
+    document.getElementById("settings-sound").checked = this.soundEnabled;
+    document.getElementById("settings-infinite").checked = this.infiniteScoring;
+    document.getElementById("settings-modal-overlay").classList.add("open");
+  },
+  closeHomeSettings() {
+    document.getElementById("settings-modal-overlay").classList.remove("open");
+  },
+  applyHomeSettings() {
+    this.boardSize = parseInt(document.getElementById("settings-board-size").value);
+    this.winningCombinations = this.generateWinningCombinations(this.boardSize);
+    this.timerEnabled = document.getElementById("settings-timer").checked;
+    this.soundEnabled = document.getElementById("settings-sound").checked;
+    this.infiniteScoring = document.getElementById("settings-infinite").checked;
+    document.getElementById("timer-check").checked = this.timerEnabled;
+    document.getElementById("sound-check").checked = this.soundEnabled;
+    document.getElementById("infinite-check").checked = this.infiniteScoring;
+    const themeName = document.getElementById("settings-bg").value;
+    this.changeBackground(BACKGROUND_THEMES[themeName]);
+    this.closeHomeSettings();
+  },
+
+  // ---------------- BURGER MENU ----------------
+  toggleBurgerMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById("burger-menu");
+    const btn = document.getElementById("burger-btn");
+    if (menu.style.display === "block") { menu.style.display = "none"; return; }
+    const rect = btn.getBoundingClientRect();
+    menu.style.left = rect.left + "px";
+    menu.style.top = rect.bottom + "px";
+    menu.style.display = "block";
+  },
+
+  // ---------------- MODALS: INFO / CONFIRM ----------------
+  _infoCallback: null,
+  showInfo(title, body, callback) {
+    document.getElementById("info-modal-title").textContent = title;
+    document.getElementById("info-modal-body").textContent = body;
+    this._infoCallback = callback || null;
+    document.getElementById("info-modal-overlay").classList.add("open");
+  },
+  closeInfoModal() {
+    document.getElementById("info-modal-overlay").classList.remove("open");
+    const cb = this._infoCallback;
+    this._infoCallback = null;
+    if (cb) cb();
+  },
+  showAbout() {
+    this.showInfo("About", "Itaktak Mo Game!\nA customizable Tic Tac Toe for 2 players or vs the computer.");
+  },
+
+  _confirmCallback: null,
+  showConfirm(title, body, callback) {
+    document.getElementById("confirm-modal-title").textContent = title;
+    document.getElementById("confirm-modal-body").textContent = body;
+    this._confirmCallback = callback || null;
+    document.getElementById("confirm-modal-overlay").classList.add("open");
+  },
+  closeConfirmModal(result) {
+    document.getElementById("confirm-modal-overlay").classList.remove("open");
+    const cb = this._confirmCallback;
+    this._confirmCallback = null;
+    if (cb) cb(result);
+  },
+
+  // ---------------- KEYBOARD SHORTCUTS ----------------
+  handleKey(e) {
+    if (document.querySelector(".modal-overlay.open")) return; // don't fire shortcuts while a modal is open
+    if (e.key === "r" || e.key === "R") {
+      if (document.getElementById("game-screen").style.display === "flex") this.playAgain();
+    } else if (e.key === "Escape") {
+      if (document.getElementById("game-screen").style.display === "flex") this.exitGame();
+    }
+  },
+
+  // ---------------- SCORE PERSISTENCE ----------------
+  loadScores() {
+    // Browser build keeps scores in memory only (no filesystem access,
+    // unlike the desktop version's score.txt).
+    this.scoreX = 0;
+    this.scoreO = 0;
+  },
+  saveScores() {
+    // No-op in the browser build - scores reset each session.
+  },
+
+  // ---------------- EXIT ----------------
+  exitGame() {
+    this.showInfo("Thanks for playing!", "Itaktak Mo Game! You can close this tab anytime.");
+  },
+};
+
+window.addEventListener("DOMContentLoaded", () => Game.init());
+</script>
+</body>
+</html>
