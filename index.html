@@ -152,13 +152,14 @@
   .submenu-wrap { position: relative; }
   .submenu {
     display: none;
-    position: absolute;
-    left: 100%; top: 0;
-    background: #2c2c30;
-    min-width: 130px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    position: static;
+    background: #242428;
+    box-shadow: none;
+    border-radius: 4px;
+    margin: 2px 0 4px 10px;
   }
   .submenu.open { display: block; }
+  .sub-toggle.expanded { background: rgba(255,255,255,0.08); }
   .check-row { display: flex; align-items: center; gap: 8px; }
 
   /* ---------- GAME SCREEN ---------- */
@@ -578,7 +579,8 @@ const Game = {
         e.stopPropagation();
         const wasOpen = submenu.classList.contains("open");
         document.querySelectorAll(".submenu.open").forEach((s) => s.classList.remove("open"));
-        if (!wasOpen) submenu.classList.add("open");
+        document.querySelectorAll(".sub-toggle.expanded").forEach((t) => t.classList.remove("expanded"));
+        if (!wasOpen) { submenu.classList.add("open"); toggle.classList.add("expanded"); }
       });
     });
 
